@@ -4,14 +4,16 @@ import datetime
 from dash import Dash, Input, Output, State, ctx, html, dcc, callback, set_props, no_update
 from celery import Celery, worker
 import dash_ag_grid as dag
-from icecream import ic
+# from icecream import ic
 import utils
 import dash_bootstrap_components as dbc
 
+REDIS_NUM = 1 if "workspace" in os.environ.get("DASH_REQUESTS_PATHNAME_PREFIX") else 3
+
 celery_app = Celery(
     __name__,
-    broker=f"{os.environ['REDIS_URL']}/3",
-    backend=f"{os.environ['REDIS_URL']}/4",
+    broker=f"{os.environ['REDIS_URL']}/{REDIS_NUM}",
+    backend=f"{os.environ['REDIS_URL']}/{REDIS_NUM + 1}",
 )
 celery_inspector = celery_app.control.inspect()
 CELERY_HOSTNAME = worker.worker.WorkController(app=celery_app).hostname
@@ -50,6 +52,15 @@ def layout():
             ),  
             dbc.Button(
                 id="check_celery", children="Check celery status and update table", style={"margin":"2px"}
+            ),
+            dbc.Checklist(
+                options=[
+                    {"label": "Include tasks triggered by other users (slower)", "value": 1},
+                ],
+                value=[1],
+                id="include_other_users",
+                switch=True,
+                inline=True,
             ),
             html.Div(id="check_celery_output"),
             dag.AgGrid(
@@ -165,20 +176,36 @@ def update_clicks(n_clicks_1, n_clicks_2, len_min):
     Input("interval", "n_intervals"),
     Input("check_celery", "n_clicks"),
     State("interval", "disabled"),
+    State("include_other_users", "value"),
     prevent_initial_call=True,
 )
-def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
+def check_task_status(current_tasks, _intervals, _check_celery, _disabled, include_other_users):
     # if there are tasks and none of them is pending, stop interval
     # all(...) will return true if current_tasks is empty too, that's why we add "if current_tasks and"
     if current_tasks and all(
         [task["status"] in ["Cancelled", "Complete"] for task in current_tasks]
-    ):
+    ) and (ctx.triggered_id != "check_celery"):
         return True  # stop interval
     elif ctx.triggered_id == "dag_celery":
-        # start interval if it isn't running yet
+        # start interval when a record is added to the table if it isn't running yet
         return False if _disabled else no_update
     # if it's the interval what triggers the callback, run the check for tasks' status
     elif ctx.triggered_id in ["interval", "check_celery"]:
+        if include_other_users: # possible values: [], [True]
+            active_and_reserved = utils.get_celery_active_and_reserved(celery_inspector, CELERY_HOSTNAME)
+            in_table = [t["id"] for t in current_tasks]
+            new_tasks = []
+            for t in active_and_reserved:
+                if t["id"] in in_table:
+                    continue
+                else :
+                    new_tasks.append(t)
+                    current_tasks.append(t)
+               
+            # add them to the table too
+            if new_tasks:
+                set_props("dag_celery", {"rowTransaction": {"add": new_tasks}})
+
         for task_dict in current_tasks:
             # don't do anything with tasks that have already been cancelled or completed
             if task_dict["status"] in ["Cancelled", "Complete"]:
@@ -191,7 +218,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
             else:
                 task_id = task_dict["id"]
                 res = celery_app.AsyncResult(task_id)
-                ic(task_id, celery_inspector.query_task(task_id), res.status)
+                # ic(task_id, celery_inspector.query_task(task_id), res.status)
                 # double check in case of concurrent callbacks
                 if res.status == "REVOKED":
                     continue

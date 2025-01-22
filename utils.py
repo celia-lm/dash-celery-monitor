@@ -137,4 +137,4 @@ def get_celery_active_and_reserved(celery_inspector, celery_hostname, only_ids=F
                             t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
                     celery_data.append(t)
     
-    return celery_data
+            return celery_data

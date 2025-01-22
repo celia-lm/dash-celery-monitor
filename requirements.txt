@@ -1,7 +1,7 @@
 celery
 dash 
 dash-ag-grid
-dash-bootstrap-components==1.6.0
+dash-bootstrap-components==1.7.1
 gunicorn
 icecream
 # https://github.com/celery/kombu/issues/1785
