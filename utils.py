@@ -116,7 +116,7 @@ def update_row_value(row_dict: dict, updated_values: dict):
         updatedRow[k] = v
     return updatedRow
 
-def get_celery_active_and_reserved(celery_inspector, celery_hostname):
+def get_celery_active_and_reserved(celery_inspector, celery_hostname, only_ids=False):
     celery_data = []
     active_tasks = celery_inspector.active()
     reserved_tasks = celery_inspector.reserved()
@@ -141,4 +141,8 @@ def get_celery_active_and_reserved(celery_inspector, celery_hostname):
                         t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
                 celery_data.append(t)
     
-    return celery_data
+    if only_ids :
+        task_ids = [t["id"] for t in celery_data]
+        return task_ids
+    else:
+        return celery_data

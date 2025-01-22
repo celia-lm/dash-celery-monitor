@@ -49,7 +49,7 @@ def layout():
                 id="interval", interval=1000 * 5, disabled=True
             ),  
             dbc.Button(
-                id="check_celery", children="Check celery status and update table"
+                id="check_celery", children="Check celery status and update table", style={"margin":"2px"}
             ),
             html.Div(id="check_celery_output"),
             dag.AgGrid(
@@ -182,8 +182,10 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
         for task_dict in current_tasks:
             # don't do anything with tasks that have already been cancelled or completed
             if task_dict["status"] in ["Cancelled", "Complete"]:
-                res = celery_app.AsyncResult(task_id)
-                ic(task_id, celery_inspector.query_task(task_id), res.status)
+                # for checks
+                # task_id = task_dict["task_id"]
+                # res = celery_app.AsyncResult(task_id)
+                # ic(task_id, celery_inspector.query_task(task_id), res.status)
                 continue
             # if task is Queued or Running
             else:
