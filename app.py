@@ -1,9 +1,7 @@
 import time
 import os
 import datetime
-import dash
-from dash import Dash, DiskcacheManager, CeleryManager
-from dash import Input, Output, State, ctx, html, dcc, callback, set_props
+from dash import Dash, Input, Output, State, ctx, html, dcc, callback, set_props, no_update
 from celery import Celery, worker
 import dash_ag_grid as dag
 from icecream import ic
@@ -154,7 +152,7 @@ def update_clicks(n_clicks_1, n_clicks_2, len_min):
                     "status": "Queued",
                 }
             ]
-            dash.set_props("dag_celery", {"rowTransaction": {"add": newRows}})
+            set_props("dag_celery", {"rowTransaction": {"add": newRows}})
 
     # no return statement
 
@@ -178,7 +176,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
         return True  # stop interval
     elif ctx.triggered_id == "dag_celery":
         # start interval if it isn't running yet
-        return False if _disabled else dash.no_update
+        return False if _disabled else no_update
     # if it's the interval what triggers the callback, run the check for tasks' status
     elif ctx.triggered_id in ["interval", "check_celery"]:
         for task_dict in current_tasks:
@@ -200,12 +198,12 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
                     # more info about disable_sync_subtasks: https://docs.celeryq.dev/en/latest/userguide/tasks.html#avoid-launching-synchronous-subtasks
                     result = res.get(disable_sync_subtasks=False)
                     output_info = TASK_OUTPUTS.get(task_dict["name"])
-                    dash.set_props(
+                    set_props(
                         output_info.get("component_id"),
                         {output_info.get("component_prop"): result},
                     )
 
-                    dash.set_props(
+                    set_props(
                         "dag_celery",
                         {
                             "rowTransaction": {
@@ -231,7 +229,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
                         continue
                     # only update the grid if it hasn't been updated yet
                     elif task_dict["status"] != "Running":
-                        dash.set_props(
+                        set_props(
                             "dag_celery",
                             {
                                 "rowTransaction": {
@@ -246,7 +244,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled):
                     else:
                         continue
 
-        return dash.no_update
+        return no_update
 
 @callback(
     Input("cancel_task", "n_clicks"),
@@ -257,7 +255,7 @@ def cancel_job(click, selectedRows):
     task_dict = selectedRows[0]
     res1 = celery_app.AsyncResult(task_dict["id"])
     celery_app.control.revoke(task_dict["id"], terminate=True)
-    dash.set_props(
+    set_props(
         "dag_celery",
         {
             "rowTransaction": {

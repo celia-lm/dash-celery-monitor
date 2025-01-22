@@ -6,7 +6,7 @@ app_description_text = """
 The purpose of this app is to allow the user to interact with celery tasks
 and see how we can get insights abour the different phases
 of the task completition process programmatically (i.e. by using the celery python library).\n
-The complete code can be reviewed in the [GitHub repository](link), but here's a summary
+The complete code can be reviewed in the [GitHub repository](https://github.com/celia-lm/dash-celery-monitor), but here's a summary
 of the main actions and takeaways from the design process of this app.\n
 
 Main reference: https://docs.celeryq.dev/en/latest/reference/celery.app.control.html
