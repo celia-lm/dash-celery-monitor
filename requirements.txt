@@ -1,0 +1,9 @@
+celery
+dash 
+dash-ag-grid
+dash-bootstrap-components==1.6.0
+gunicorn
+icecream
+# https://github.com/celery/kombu/issues/1785
+kombu==5.3.1
+redis
