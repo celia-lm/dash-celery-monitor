@@ -256,7 +256,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
                     queried_task = celery_inspector.query_task(task_id)
                     print(queried_task)
-                    task_state = [task_info[0] for task_info in queried_task.values()]
+                    task_state = [task_info[task_id][0] for task_info in queried_task.values()]
                     print(task_state)
                     if task_state == "reserved":
                         continue
