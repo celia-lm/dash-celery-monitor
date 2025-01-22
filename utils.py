@@ -103,7 +103,7 @@ def celery_status_summary(celery_status_text):
         [
             dbc.AccordionItem(
                 dcc.Markdown(celery_status_text),
-                title="Celery status (last update: {update_time}",
+                title=f"Celery status (last update: {update_time})",
             )
         ],
         start_collapsed=True
@@ -142,4 +142,3 @@ def get_celery_active_and_reserved(celery_inspector, celery_hostname):
                 celery_data.append(t)
     
     return celery_data
-
