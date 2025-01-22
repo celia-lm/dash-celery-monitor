@@ -16,7 +16,7 @@ celery_app = Celery(
     backend=f"{os.environ['REDIS_URL']}/{REDIS_NUM + 1}",
 )
 celery_inspector = celery_app.control.inspect()
-CELERY_HOSTNAME = worker.worker.WorkController(app=celery_app).hostname
+# CELERY_HOSTNAME = worker.worker.WorkController(app=celery_app).hostname
 
 app = Dash(update_title=None, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
@@ -24,7 +24,7 @@ server = app.server
 def layout():
 
     # populate the table with tasks that have been sent prior to the page load
-    initial_celery_data = utils.get_celery_active_and_reserved(celery_inspector, CELERY_HOSTNAME)
+    initial_celery_data = utils.get_celery_active_and_reserved(celery_inspector)
     
     return dbc.Container(
         [
@@ -192,7 +192,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
     # if it's the interval what triggers the callback, run the check for tasks' status
     elif ctx.triggered_id in ["interval", "check_celery"]:
         if include_other_users: # possible values: [], [True]
-            active_and_reserved = utils.get_celery_active_and_reserved(celery_inspector, CELERY_HOSTNAME)
+            active_and_reserved = utils.get_celery_active_and_reserved(celery_inspector)
             in_table = [t["id"] for t in current_tasks]
             new_tasks = []
             for t in active_and_reserved:
@@ -254,9 +254,10 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                 else:
                     # task_state is one of: "active", "reserved"
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
-                    query_output = celery_inspector.query_task(task_id)
-                    print(query_output)
-                    task_state = query_output[CELERY_HOSTNAME][task_id][0]
+                    queried_task = celery_inspector.query_task(task_id)
+                    print(queried_task)
+                    task_state = [task_info[0] for task_info in queried_task.values()]
+                    print(task_state)
                     if task_state == "reserved":
                         continue
                     # only update the grid if it hasn't been updated yet

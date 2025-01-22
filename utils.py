@@ -116,25 +116,28 @@ def update_row_value(row_dict: dict, updated_values: dict):
         updatedRow[k] = v
     return updatedRow
 
-def get_celery_active_and_reserved(celery_inspector, celery_hostname, only_ids=False):
+def get_celery_active_and_reserved(celery_inspector, only_ids=False):
     celery_data = []
+    active_tasks = celery_inspector.active()
+    reserved_tasks = celery_inspector.reserved()
     all_tasks = {
-        "active":celery_inspector.active(),
-        "reserved":celery_inspector.reserved()
+        "active":active_tasks,
+        "reserved":reserved_tasks
     }
-
-    for task_type, celery_output in all_tasks.items():
-        if celery_output :
-            if only_ids:
-                celery_data.append([t["id"] for t in celery_output.get(celery_hostname, [])])
-            else :
-                for t in celery_output.get(celery_hostname, []):
-                    t["status"] = "Running" if task_type=="active" else "Queued"
-                    if t["time_start"]:
-                        try :
-                            t["time_start"] = t["time_start"].strftime("%H:%M:%S")
-                        except : # if it's float the above code will fail
-                            t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
-                    celery_data.append(t)
-    
-            return celery_data
+    celery_hostname_all = set(list(active_tasks.keys())+list(reserved_tasks.keys()))
+    for celery_hostname in celery_hostname_all:
+        for task_type, celery_output in all_tasks.items():
+            if celery_output :
+                if only_ids:
+                    celery_data.append([t["id"] for t in celery_output.get(celery_hostname, [])])
+                else :
+                    for t in celery_output.get(celery_hostname, []):
+                        t["status"] = "Running" if task_type=="active" else "Queued"
+                        if t["time_start"]:
+                            try :
+                                t["time_start"] = t["time_start"].strftime("%H:%M:%S")
+                            except : # if it's float the above code will fail
+                                t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
+                        celery_data.append(t)
+        
+    return celery_data
