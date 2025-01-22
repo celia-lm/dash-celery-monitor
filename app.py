@@ -4,7 +4,7 @@ import datetime
 from dash import Dash, Input, Output, State, ctx, html, dcc, callback, set_props, no_update
 from celery import Celery, worker
 import dash_ag_grid as dag
-# from icecream import ic
+from icecream import ic
 import utils
 import dash_bootstrap_components as dbc
 
@@ -220,6 +220,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                 res = celery_app.AsyncResult(task_id)
                 # ic(task_id, celery_inspector.query_task(task_id), res.status)
                 # double check in case of concurrent callbacks
+                ic(task_id, res.status)
                 if res.status == "REVOKED":
                     continue
                 # task finished
@@ -253,7 +254,9 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                 else:
                     # task_state is one of: "active", "reserved"
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
-                    task_state = celery_inspector.query_task(task_id)[CELERY_HOSTNAME][task_id][0]
+                    query_output = celery_inspector.query_task(task_id)
+                    print(query_output)
+                    task_state = query_output[CELERY_HOSTNAME][task_id][0]
                     if task_state == "reserved":
                         continue
                     # only update the grid if it hasn't been updated yet
