@@ -93,7 +93,7 @@ task_description = dcc.Markdown("""
 You can:
 - Start two types of tasks and see how their status changes in the table. The celery process has two workers, so only two tasks (max) should show the 'Running' status at the same time.
 - Select one task and cancel it by clicking on the 'Cancel' button.
-- Get an overview of the tasks Celery is handling at any moment by clicking the 'Check Celery status and update table' button (the update can take up to 10 seconds and it will appear at the bottom of the window - scroll down if you don't see it). The table will get updated automatically every 5 seconds, and the 'Cancelled' status will appear immediately, but the 'Complete' and 'Running' status will only be updated by the interval or the button click.
+- Get an overview of the tasks Celery is handling at any moment by clicking the 'Check Celery status and update table' button (the update can take up to 10 seconds and it will appear at the bottom of the window - scroll down if you don't see it). The table will get updated automatically every minute, and the 'Cancelled' status will appear immediately, but the 'Complete' and 'Running' status will only be updated by the interval or the button click.
 """)
 
 def celery_status_summary(celery_status_text):
@@ -140,6 +140,8 @@ def get_celery_active_and_reserved(celery_inspector, only_ids=False):
                                 t["time_start"] = t["time_start"].strftime("%H:%M:%S")
                             except : # if it's float the above code will fail
                                 t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
+                        if t["kwargs"]:
+                            t["kwargs"] = str(t["kwargs"])
                         celery_data.append(t)
         
     return celery_data

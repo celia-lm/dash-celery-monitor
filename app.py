@@ -46,9 +46,9 @@ def layout():
                 ]), style={"height":"175px"}
                 ))
             ], style={"margin-botton":"5px"}), 
-            # table to display the task checks with interval to update it every 5 seconds
+            # table to display the task checks with interval to update it every minute
             dcc.Interval(
-                id="interval", interval=1000 * 5, disabled=True
+                id="interval", interval=1000 * 60, disabled=True
             ),  
             dbc.Button(
                 id="check_celery", children="Check celery status and update table", style={"margin":"2px"}
@@ -220,7 +220,6 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                 res = celery_app.AsyncResult(task_id)
                 # ic(task_id, celery_inspector.query_task(task_id), res.status)
                 # double check in case of concurrent callbacks
-                ic(task_id, res.status)
                 if res.status == "REVOKED":
                     continue
                 # task finished
@@ -255,7 +254,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                     # task_state is one of: "active", "reserved"
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
                     queried_task = celery_inspector.query_task(task_id)
-                    task_state = [task_info[task_id][0] for task_info in queried_task.values()][0]
+                    task_state = [task_info[task_id][0] for task_info in queried_task.values() if task_info.get(task_id)][0]
                     if task_state == "reserved":
                         continue
                     # only update the grid if it hasn't been updated yet
@@ -284,7 +283,6 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
 )
 def cancel_job(click, selectedRows):
     task_dict = selectedRows[0]
-    res1 = celery_app.AsyncResult(task_dict["id"])
     celery_app.control.revoke(task_dict["id"], terminate=True)
     set_props(
         "dag_celery",
