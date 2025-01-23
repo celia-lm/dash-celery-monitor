@@ -24,7 +24,7 @@ server = app.server
 def layout():
 
     # populate the table with tasks that have been sent prior to the page load
-    initial_celery_data = utils.get_celery_active_and_reserved(celery_inspector)
+    initial_celery_data = utils.get_celery_status(celery_inspector)
     ic(initial_celery_data)
     return dbc.Container(
         [
@@ -192,7 +192,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
     # if it's the interval what triggers the callback, run the check for tasks' status
     elif ctx.triggered_id in ["interval", "check_celery"]:
         if include_other_users: # possible values: [], [True]
-            active_and_reserved = utils.get_celery_active_and_reserved(celery_inspector)
+            active_and_reserved = utils.get_celery_status(celery_inspector)
             in_table = [t["id"] for t in current_tasks]
             new_tasks = []
             for t in active_and_reserved:
@@ -221,12 +221,27 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                 # ic(task_id, celery_inspector.query_task(task_id), res.status)
                 # double check in case of concurrent callbacks
                 if res.status == "REVOKED":
-                    continue
+                    if task_dict["status"] != "Cancelled":
+                        set_props(
+                            "dag_celery",
+                            {
+                                "rowTransaction": {
+                                    "update": [
+                                        utils.update_row_value(
+                                            task_dict, {"status": "Cancelled"}
+                                        )
+                                    ]
+                                }
+                            },
+                        )
+                    else :
+                        continue
                 # task finished
                 elif res.ready():
                     # more info about disable_sync_subtasks: https://docs.celeryq.dev/en/latest/userguide/tasks.html#avoid-launching-synchronous-subtasks
                     result = res.get(disable_sync_subtasks=False)
                     output_info = TASK_OUTPUTS.get(task_dict["name"])
+                    # this first set_props statement is only if there's an outpus in the layout
                     set_props(
                         output_info.get("component_id"),
                         {output_info.get("component_prop"): result},
@@ -254,16 +269,12 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                     # task_state is one of: "active", "reserved"
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
                     queried_task = celery_inspector.query_task(task_id)
-                    task_state = ""
-                    for task_info in queried_task.values():
-                        try : 
-                            task_state = task_info[task_id][0]
-                        except: 
-                            ic(task_info)
-        
-                    #task_state = [task_info[task_id][0] for task_info in queried_task.values() if task_info.get(task_id)][0]
+                    ic(queried_task)
+                    task_state = [task_info[task_id][0] for task_info in queried_task.values() if task_info.get(task_id)][0]
+                    # task still queued
                     if task_state == "reserved":
                         continue
+                    # if task isn't queued, it's running (task_state = "active")
                     # only update the grid if it hasn't been updated yet
                     elif task_dict["status"] != "Running":
                         set_props(

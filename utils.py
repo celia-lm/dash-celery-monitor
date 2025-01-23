@@ -116,32 +116,40 @@ def update_row_value(row_dict: dict, updated_values: dict):
         updatedRow[k] = v
     return updatedRow
 
-def get_celery_active_and_reserved(celery_inspector, only_ids=False):
+def get_celery_status(celery_inspector, only_ids=False):
     celery_data = []
     active_tasks = celery_inspector.active()
     reserved_tasks = celery_inspector.reserved()
+    revoked_tasks = celery_inspector.revoked()
     all_tasks = {
         "active":active_tasks,
-        "reserved":reserved_tasks
+        "reserved":reserved_tasks,
+        "revoked":revoked_tasks
     }
     active_tasks_keys = list(active_tasks.keys()) if active_tasks else []
     reserved_tasks_keys =  list(reserved_tasks.keys()) if reserved_tasks else []
-    celery_hostname_all = set(active_tasks_keys+reserved_tasks_keys)
+    revoked_tasks_keys =  list(revoked_tasks.keys()) if revoked_tasks else []
+    # get all hostnames; normally there will be only one
+    celery_hostname_all = set(active_tasks_keys+reserved_tasks_keys+revoked_tasks_keys)
+
     for celery_hostname in celery_hostname_all:
         for task_type, celery_output in all_tasks.items():
             if celery_output :
                 if only_ids:
-                    celery_data.append([t["id"] for t in celery_output.get(celery_hostname, [])])
+                    celery_data.append([t["id"]  if task_type!="revoked" else t for t in celery_output.get(celery_hostname, [])])
                 else :
                     for t in celery_output.get(celery_hostname, []):
-                        t["status"] = "Running" if task_type=="active" else "Queued"
-                        if t["time_start"]:
-                            try :
-                                t["time_start"] = t["time_start"].strftime("%H:%M:%S")
-                            except : # if it's float the above code will fail
-                                t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
-                        if t["kwargs"]:
-                            t["kwargs"] = str(t["kwargs"])
-                        celery_data.append(t)
+                        if task_type == "revoked":
+                            celery_data.append({"id":t, "status":"Cancelled"})
+                        else :
+                            t["status"] = "Running" if task_type=="active" else "Queued"
+                            if t["time_start"]:
+                                try :
+                                    t["time_start"] = t["time_start"].strftime("%H:%M:%S")
+                                except : # if it's float the above code will fail
+                                    t["time_start"] = datetime.datetime.fromtimestamp(t["time_start"]).strftime("%H:%M:%S")
+                            if t["kwargs"]:
+                                t["kwargs"] = str(t["kwargs"])
+                            celery_data.append(t)
         
     return celery_data
