@@ -124,7 +124,9 @@ def get_celery_active_and_reserved(celery_inspector, only_ids=False):
         "active":active_tasks,
         "reserved":reserved_tasks
     }
-    celery_hostname_all = set(list(active_tasks.keys())+list(reserved_tasks.keys()))
+    active_tasks_keys = list(active_tasks.keys()) if active_tasks else []
+    reserved_tasks_keys =  list(reserved_tasks.keys()) if reserved_tasks else []
+    celery_hostname_all = set(active_tasks_keys+reserved_tasks_keys)
     for celery_hostname in celery_hostname_all:
         for task_type, celery_output in all_tasks.items():
             if celery_output :
