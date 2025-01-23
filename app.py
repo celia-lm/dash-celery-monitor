@@ -25,7 +25,7 @@ def layout():
 
     # populate the table with tasks that have been sent prior to the page load
     initial_celery_data = utils.get_celery_active_and_reserved(celery_inspector)
-    
+    ic(initial_celery_data)
     return dbc.Container(
         [
             html.H2("Celery Monitor App"),
@@ -255,9 +255,7 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                     # task_state is one of: "active", "reserved"
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
                     queried_task = celery_inspector.query_task(task_id)
-                    print(queried_task)
-                    task_state = [task_info[task_id][0] for task_info in queried_task.values()]
-                    print(task_state)
+                    task_state = [task_info[task_id][0] for task_info in queried_task.values()][0]
                     if task_state == "reserved":
                         continue
                     # only update the grid if it hasn't been updated yet
