@@ -254,7 +254,14 @@ def check_task_status(current_tasks, _intervals, _check_celery, _disabled, inclu
                     # task_state is one of: "active", "reserved"
                     # it's different from res.status, which can be ACTIVE, REVOKED, PENDING
                     queried_task = celery_inspector.query_task(task_id)
-                    task_state = [task_info[task_id][0] for task_info in queried_task.values() if task_info.get(task_id)][0]
+                    task_state = ""
+                    for task_info in queried_task.values():
+                        try : 
+                            task_state = task_info[task_id][0]
+                        except: 
+                            ic(task_info)
+        
+                    #task_state = [task_info[task_id][0] for task_info in queried_task.values() if task_info.get(task_id)][0]
                     if task_state == "reserved":
                         continue
                     # only update the grid if it hasn't been updated yet
