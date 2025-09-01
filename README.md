@@ -22,7 +22,8 @@ task_id = celery_app.send_task(task_name, kwargs=task_kwargs)
 To save this task id (for example, in a dcc.Store) we will need to convert it to str with `str(task_id)`. 
 In the rest of this explanation, when `task_id` is used, it refers to the str version.
 
-**Check the status of a task**\n
+**Check the status of a task**
+
 Option A (more general):
 ```
 celery_inspector.query_task(task_id)
